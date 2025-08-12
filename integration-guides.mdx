@@ -1,0 +1,634 @@
+---
+title: "Integration Guides"
+description: "Copy-paste ready code examples for Python, Node.js, cURL, Selenium, and more popular tools."
+icon: "code"
+---
+
+## Quick Setup
+
+Before integrating, make sure you have your proxy credentials ready from your dashboard:
+
+```
+Format: username:password@endpoint:port
+Example: birduser123:birdpass456@residential.birdproxies.com:8080
+```
+
+<Warning>
+Replace the example credentials with your actual ones from the BirdProxies dashboard.
+</Warning>
+
+---
+
+## Python Integration {#python-integration}
+
+### Basic Requests
+
+<CodeGroup>
+```python Simple Request
+import requests
+
+# Your BirdProxies credentials
+PROXY_USERNAME = "your_username_here"
+PROXY_PASSWORD = "your_password_here"
+PROXY_ENDPOINT = "residential.birdproxies.com:8080"
+
+proxies = {
+    'http': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_ENDPOINT}',
+    'https': f'http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_ENDPOINT}'
+}
+
+response = requests.get('https://httpbin.org/ip', proxies=proxies)
+print(f"Your IP: {response.json()['origin']}")
+```
+
+```python With Error Handling
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+class ProxyClient:
+    def __init__(self, username, password, endpoint):
+        self.proxies = {
+            'http': f'http://{username}:{password}@{endpoint}',
+            'https': f'http://{username}:{password}@{endpoint}'
+        }
+        self.session = requests.Session()
+        
+        # Configure retries
+        retry_strategy = Retry(
+            total=3,
+            status_forcelist=[429, 500, 502, 503, 504],
+            backoff_factor=1
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+    
+    def get(self, url, **kwargs):
+        try:
+            response = self.session.get(
+                url, 
+                proxies=self.proxies, 
+                timeout=10, 
+                **kwargs
+            )
+            response.raise_for_status()
+            return response
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}")
+            return None
+
+# Usage
+client = ProxyClient("your_username", "your_password", "residential.birdproxies.com:8080")
+response = client.get('https://httpbin.org/ip')
+if response:
+    print(response.json())
+```
+</CodeGroup>
+
+### Selenium Integration
+
+<CodeGroup>
+```python Chrome/Chromium
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
+def create_proxy_driver(username, password, endpoint):
+    chrome_options = Options()
+    
+    # Configure proxy
+    proxy_server = f"{username}:{password}@{endpoint}"
+    chrome_options.add_argument(f'--proxy-server=http://{proxy_server}')
+    
+    # Additional options for better stealth
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    
+    driver = webdriver.Chrome(options=chrome_options)
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    
+    return driver
+
+# Usage
+driver = create_proxy_driver("your_username", "your_password", "residential.birdproxies.com:8080")
+driver.get("https://httpbin.org/ip")
+print(driver.page_source)
+driver.quit()
+```
+
+```python Firefox
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+
+def create_firefox_proxy_driver(username, password, endpoint):
+    host, port = endpoint.split(':')
+    
+    firefox_options = Options()
+    
+    # Configure proxy
+    firefox_options.set_preference("network.proxy.type", 1)
+    firefox_options.set_preference("network.proxy.http", host)
+    firefox_options.set_preference("network.proxy.http_port", int(port))
+    firefox_options.set_preference("network.proxy.ssl", host)
+    firefox_options.set_preference("network.proxy.ssl_port", int(port))
+    
+    # Proxy authentication
+    firefox_options.set_preference("network.proxy.username", username)
+    firefox_options.set_preference("network.proxy.password", password)
+    
+    driver = webdriver.Firefox(options=firefox_options)
+    return driver
+
+# Usage
+driver = create_firefox_proxy_driver("your_username", "your_password", "residential.birdproxies.com:8080")
+driver.get("https://httpbin.org/ip")
+print(driver.page_source)
+driver.quit()
+```
+</CodeGroup>
+
+### Scrapy Integration
+
+```python scrapy_settings.py
+# Add to your Scrapy settings.py file
+
+# Proxy middleware
+DOWNLOADER_MIDDLEWARES = {
+    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,
+}
+
+# BirdProxies configuration
+PROXY_USERNAME = "your_username_here"
+PROXY_PASSWORD = "your_password_here"
+PROXY_ENDPOINT = "residential.birdproxies.com:8080"
+
+# Custom middleware for proxy rotation
+class BirdProxiesMiddleware:
+    def process_request(self, request, spider):
+        proxy_url = f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_ENDPOINT}"
+        request.meta['proxy'] = proxy_url
+        return None
+```
+
+---
+
+## Node.js Integration
+
+<CodeGroup>
+```javascript Axios
+const axios = require('axios');
+const HttpsProxyAgent = require('https-proxy-agent');
+
+class BirdProxyClient {
+    constructor(username, password, endpoint) {
+        this.proxyUrl = `http://${username}:${password}@${endpoint}`;
+        this.httpsAgent = new HttpsProxyAgent(this.proxyUrl);
+    }
+    
+    async get(url, options = {}) {
+        try {
+            const response = await axios.get(url, {
+                httpsAgent: this.httpsAgent,
+                timeout: 10000,
+                ...options
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Request failed:', error.message);
+            throw error;
+        }
+    }
+    
+    async post(url, data, options = {}) {
+        try {
+            const response = await axios.post(url, data, {
+                httpsAgent: this.httpsAgent,
+                timeout: 10000,
+                ...options
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Request failed:', error.message);
+            throw error;
+        }
+    }
+}
+
+// Usage
+const client = new BirdProxyClient(
+    "your_username", 
+    "your_password", 
+    "residential.birdproxies.com:8080"
+);
+
+client.get('https://httpbin.org/ip')
+    .then(data => console.log('Your IP:', data.origin))
+    .catch(error => console.error('Error:', error));
+```
+
+```javascript Puppeteer
+const puppeteer = require('puppeteer');
+
+async function createProxyBrowser(username, password, endpoint) {
+    const browser = await puppeteer.launch({
+        args: [
+            `--proxy-server=http://${endpoint}`,
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+        ],
+        headless: true
+    });
+    
+    const page = await browser.newPage();
+    
+    // Authenticate proxy
+    await page.authenticate({
+        username: username,
+        password: password
+    });
+    
+    // Set realistic user agent
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+    
+    return { browser, page };
+}
+
+// Usage
+async function testProxy() {
+    const { browser, page } = await createProxyBrowser(
+        "your_username",
+        "your_password", 
+        "residential.birdproxies.com:8080"
+    );
+    
+    await page.goto('https://httpbin.org/ip');
+    const content = await page.content();
+    console.log(content);
+    
+    await browser.close();
+}
+
+testProxy().catch(console.error);
+```
+</CodeGroup>
+
+---
+
+## cURL Examples
+
+<CodeGroup>
+```bash Basic GET
+curl -x http://your_username:your_password@residential.birdproxies.com:8080 \
+     -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+     https://httpbin.org/ip
+```
+
+```bash POST with Data
+curl -x http://your_username:your_password@residential.birdproxies.com:8080 \
+     -X POST \
+     -H "Content-Type: application/json" \
+     -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+     -d '{"key": "value"}' \
+     https://httpbin.org/post
+```
+
+```bash With Custom Headers
+curl -x http://your_username:your_password@residential.birdproxies.com:8080 \
+     -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+     -H "Accept: application/json" \
+     -H "Referer: https://google.com" \
+     -L \
+     https://httpbin.org/headers
+```
+</CodeGroup>
+
+---
+
+## PHP Integration
+
+<CodeGroup>
+```php cURL
+<?php
+class BirdProxyClient {
+    private $username;
+    private $password;
+    private $endpoint;
+    
+    public function __construct($username, $password, $endpoint) {
+        $this->username = $username;
+        $this->password = $password;
+        $this->endpoint = $endpoint;
+    }
+    
+    public function get($url, $headers = []) {
+        $ch = curl_init();
+        
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_PROXY => $this->endpoint,
+            CURLOPT_PROXYUSERPWD => $this->username . ':' . $this->password,
+            CURLOPT_PROXYTYPE => CURLPROXY_HTTP,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_FOLLOWLOCATION => true
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($error) {
+            throw new Exception("cURL Error: " . $error);
+        }
+        
+        return [
+            'body' => $response,
+            'status_code' => $httpCode
+        ];
+    }
+}
+
+// Usage
+$client = new BirdProxyClient(
+    "your_username",
+    "your_password", 
+    "residential.birdproxies.com:8080"
+);
+
+try {
+    $response = $client->get('https://httpbin.org/ip');
+    echo "Response: " . $response['body'] . "\n";
+    echo "Status: " . $response['status_code'] . "\n";
+} catch (Exception $e) {
+    echo "Error: " . $e->getMessage() . "\n";
+}
+?>
+```
+
+```php Guzzle
+<?php
+require 'vendor/autoload.php';
+
+use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Handler\CurlHandler;
+
+class BirdProxyGuzzleClient {
+    private $client;
+    
+    public function __construct($username, $password, $endpoint) {
+        $this->client = new Client([
+            'proxy' => "http://{$username}:{$password}@{$endpoint}",
+            'timeout' => 30,
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            ]
+        ]);
+    }
+    
+    public function get($url, $options = []) {
+        try {
+            $response = $this->client->get($url, $options);
+            return [
+                'body' => $response->getBody()->getContents(),
+                'status_code' => $response->getStatusCode(),
+                'headers' => $response->getHeaders()
+            ];
+        } catch (Exception $e) {
+            throw new Exception("Request failed: " . $e->getMessage());
+        }
+    }
+}
+
+// Usage
+$client = new BirdProxyGuzzleClient(
+    "your_username",
+    "your_password",
+    "residential.birdproxies.com:8080"
+);
+
+try {
+    $response = $client->get('https://httpbin.org/ip');
+    echo $response['body'];
+} catch (Exception $e) {
+    echo "Error: " . $e->getMessage();
+}
+?>
+```
+</CodeGroup>
+
+---
+
+## Java Integration
+
+```java
+import java.net.*;
+import java.io.*;
+
+public class BirdProxyClient {
+    private String username;
+    private String password;
+    private String proxyHost;
+    private int proxyPort;
+    
+    public BirdProxyClient(String username, String password, String endpoint) {
+        this.username = username;
+        this.password = password;
+        String[] parts = endpoint.split(":");
+        this.proxyHost = parts[0];
+        this.proxyPort = Integer.parseInt(parts[1]);
+    }
+    
+    public String get(String urlString) throws IOException {
+        // Create proxy
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+        
+        // Create connection
+        URL url = new URL(urlString);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection(proxy);
+        
+        // Set proxy authentication
+        String auth = username + ":" + password;
+        String encodedAuth = java.util.Base64.getEncoder().encodeToString(auth.getBytes());
+        connection.setRequestProperty("Proxy-Authorization", "Basic " + encodedAuth);
+        
+        // Set headers
+        connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+        connection.setRequestMethod("GET");
+        connection.setConnectTimeout(10000);
+        connection.setReadTimeout(10000);
+        
+        // Read response
+        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        StringBuilder response = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            response.append(line);
+        }
+        reader.close();
+        
+        return response.toString();
+    }
+    
+    public static void main(String[] args) {
+        try {
+            BirdProxyClient client = new BirdProxyClient(
+                "your_username",
+                "your_password",
+                "residential.birdproxies.com:8080"
+            );
+            
+            String response = client.get("https://httpbin.org/ip");
+            System.out.println(response);
+        } catch (IOException e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+}
+```
+
+---
+
+## C# Integration
+
+```csharp
+using System;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Text;
+
+public class BirdProxyClient
+{
+    private readonly HttpClient _httpClient;
+    
+    public BirdProxyClient(string username, string password, string endpoint)
+    {
+        var handler = new HttpClientHandler()
+        {
+            Proxy = new System.Net.WebProxy($"http://{endpoint}")
+            {
+                Credentials = new System.Net.NetworkCredential(username, password)
+            },
+            UseProxy = true
+        };
+        
+        _httpClient = new HttpClient(handler);
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", 
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+        _httpClient.Timeout = TimeSpan.FromSeconds(30);
+    }
+    
+    public async Task<string> GetAsync(string url)
+    {
+        try
+        {
+            HttpResponseMessage response = await _httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
+        }
+        catch (HttpRequestException e)
+        {
+            throw new Exception($"Request failed: {e.Message}");
+        }
+    }
+    
+    public void Dispose()
+    {
+        _httpClient?.Dispose();
+    }
+}
+
+// Usage
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        var client = new BirdProxyClient(
+            "your_username",
+            "your_password",
+            "residential.birdproxies.com:8080"
+        );
+        
+        try
+        {
+            string response = await client.GetAsync("https://httpbin.org/ip");
+            Console.WriteLine(response);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error: {e.Message}");
+        }
+        finally
+        {
+            client.Dispose();
+        }
+    }
+}
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Error Handling" icon="exclamation-triangle">
+    Always implement retry logic and proper error handling for network requests
+  </Card>
+  <Card title="User Agents" icon="user">
+    Use realistic user agent strings that match your target platform
+  </Card>
+  <Card title="Rate Limiting" icon="clock">
+    Implement delays between requests to avoid overwhelming target servers
+  </Card>
+  <Card title="Session Management" icon="key">
+    Use sticky sessions when you need to maintain the same IP for multiple requests
+  </Card>
+</CardGroup>
+
+### Common Headers
+
+```json
+{
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.5",
+  "Accept-Encoding": "gzip, deflate",
+  "Connection": "keep-alive",
+  "Upgrade-Insecure-Requests": "1"
+}
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection Timeout">
+    Increase timeout values and verify your proxy credentials are correct
+  </Accordion>
+  <Accordion title="Authentication Failed">
+    Double-check your username and password from the dashboard
+  </Accordion>
+  <Accordion title="IP Blocked">
+    Switch to a different endpoint or contact support for assistance
+  </Accordion>
+  <Accordion title="Slow Response Times">
+    Try different geographic endpoints or switch from residential to ISP proxies
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+Need help with integration? Join our [Discord community](https://discord.com/invite/birdproxies) for real-time support from our team and other developers.
+</Warning>
