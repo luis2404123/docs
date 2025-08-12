@@ -8,59 +8,24 @@
     "dark": "#d00e20"
   },
   "favicon": "/favicon.svg",
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Documentation",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "pages": [
-              "index",
-              "getting-started",
-              "proxy-types"
-            ]
-          },
-          {
-            "group": "Integration",
-            "pages": [
-              "integration-guides",
-              "best-practices",
-              "troubleshooting"
-            ]
-          },
-          {
-            "group": "Features",
-            "pages": [
-              "sub-users",
-              "referrals",
-              "security"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API Reference",
-        "groups": [
-          {
-            "group": "Authentication",
-            "pages": [
-              "api-reference/introduction",
-              "api-reference/authentication"
-            ]
-          },
-          {
-            "group": "Endpoints",
-            "pages": [
-              "api-reference/proxies",
-              "api-reference/users",
-              "api-reference/referrals"
-            ]
-          }
-        ]
-      }
-    ],
-    "global": {
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "index",
+        "getting-started",
+        "proxy-types"
+      ]
+    },
+    {
+      "group": "Integration",
+      "pages": [
+        "integration-guides",
+        "referrals"
+      ]
+    }
+  ],
+  "global": {
       "anchors": [
         {
           "anchor": "Dashboard",
