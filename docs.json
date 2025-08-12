@@ -26,24 +26,23 @@
     }
   ],
   "global": {
-      "anchors": [
-        {
-          "anchor": "Dashboard",
-          "href": "https://birdproxies.com/dashboard",
-          "icon": "chart-line"
-        },
-        {
-          "anchor": "Discord",
-          "href": "https://discord.com/invite/birdproxies",
-          "icon": "discord"
-        },
-        {
-          "anchor": "Support",
-          "href": "https://birdproxies.com/support",
-          "icon": "life-buoy"
-        }
-      ]
-    }
+    "anchors": [
+      {
+        "anchor": "Dashboard",
+        "href": "https://birdproxies.com/dashboard",
+        "icon": "chart-line"
+      },
+      {
+        "anchor": "Discord",
+        "href": "https://discord.com/invite/birdproxies",
+        "icon": "discord"
+      },
+      {
+        "anchor": "Support",
+        "href": "https://birdproxies.com/support",
+        "icon": "life-buoy"
+      }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
